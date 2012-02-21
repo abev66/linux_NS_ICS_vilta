@@ -36,7 +36,7 @@
 #define LULZACTIVE_AUTHOR	"tegrak"
 
 // if you changed some codes for optimization, just write your name here.
-#define LULZACTIVE_TUNER "simone201"
+#define LULZACTIVE_TUNER "simone201, abev66"
 
 #define LOGI(fmt...) printk(KERN_INFO "[lulzactive] " fmt)
 #define LOGW(fmt...) printk(KERN_WARNING "[lulzactive] " fmt)
@@ -75,13 +75,13 @@ static spinlock_t down_cpumask_lock;
 /*
  * The minimum amount of time to spend at a frequency before we can step up.
  */
-#define DEFAULT_UP_SAMPLE_TIME 20000
+#define DEFAULT_UP_SAMPLE_TIME 30000
 static unsigned long up_sample_time;
 
 /*
  * The minimum amount of time to spend at a frequency before we can step down.
  */
-#define DEFAULT_DOWN_SAMPLE_TIME 40000
+#define DEFAULT_DOWN_SAMPLE_TIME 50000
 static unsigned long down_sample_time;
 
 /*
@@ -100,28 +100,28 @@ enum {
 /*
  * CPU freq will be increased if measured load > inc_cpu_load;
  */
-#define DEFAULT_INC_CPU_LOAD 60
+#define DEFAULT_INC_CPU_LOAD 80
 static unsigned long inc_cpu_load;
 
 /*
  * CPU freq will be decreased if measured load < dec_cpu_load;
  * not implemented yet.
  */
-#define DEFAULT_DEC_CPU_LOAD 30
+#define DEFAULT_DEC_CPU_LOAD 45
 static unsigned long dec_cpu_load;
 
 /*
  * Increasing frequency table index
  * zero disables and causes to always jump straight to max frequency.
  */
-#define DEFAULT_PUMP_UP_STEP 1
+#define DEFAULT_PUMP_UP_STEP 3
 static unsigned long pump_up_step;
 
 /*
  * Decreasing frequency table index
  * zero disables and will calculate frequency according to load heuristic.
  */
-#define DEFAULT_PUMP_DOWN_STEP 1
+#define DEFAULT_PUMP_DOWN_STEP 0
 static unsigned long pump_down_step;
 
 /*
@@ -372,11 +372,10 @@ static void cpufreq_lulzactive_timer(unsigned long data)
             
 			new_freq = pcpu->freq_table[index].frequency;
 		}
-		else {
+		else
 			new_freq = pcpu->policy->max;
-		}
 	}
-	else {		
+	else if(cpu_load < dec_cpu_load) {	
 		if (pump_down_step) {
 			ret = cpufreq_frequency_table_target(
                                                  pcpu->policy, pcpu->freq_table,
@@ -407,7 +406,8 @@ static void cpufreq_lulzactive_timer(unsigned long data)
 			}
 			new_freq = pcpu->freq_table[index].frequency;
 		}		
-	}
+	} else
+		new_freq = pcpu->policy->cur;
     
 	// adjust freq when screen off
 	new_freq = adjust_screen_off_freq(pcpu, new_freq);
@@ -695,17 +695,48 @@ static ssize_t store_inc_cpu_load(struct kobject *kobj,
 	ssize_t ret;
 	if(strict_strtoul(buf, 0, &inc_cpu_load)==-EINVAL) return -EINVAL;
     
-	if (inc_cpu_load > 100) {
+	if (inc_cpu_load > 100) 
 		inc_cpu_load = 100;
-	}
-	else if (inc_cpu_load < 10) {
+	else if (inc_cpu_load < 10)
 		inc_cpu_load = 10;
-	}
+	
+	if (inc_cpu_load < dec_cpu_load)
+	  inc_cpu_load = dec_cpu_load;
+	
 	return count;
 }
 
 static struct global_attr inc_cpu_load_attr = __ATTR(inc_cpu_load, 0666,
                                                      show_inc_cpu_load, store_inc_cpu_load);
+
+// dec_cpu_load
+static ssize_t show_dec_cpu_load(struct kobject *kobj,
+                                 struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", dec_cpu_load);
+}
+
+static ssize_t store_dec_cpu_load(struct kobject *kobj,
+                                  struct attribute *attr, const char *buf, size_t count)
+{
+	ssize_t ret;
+	if(strict_strtoul(buf, 0, &dec_cpu_load)==-EINVAL) return -EINVAL;
+    
+	if (dec_cpu_load < 0)
+		dec_cpu_load = 0;
+	else if (dec_cpu_load < 90) 
+		dec_cpu_load = 90;
+	
+	if (dec_cpu_load > inc_cpu_load )
+		dec_cpu_load = inc_cpu_load;
+	
+	return count;
+}
+
+static struct global_attr dec_cpu_load_attr = __ATTR(dec_cpu_load, 0666,
+                                                     show_dec_cpu_load, store_dec_cpu_load);
+
+
 
 // down_sample_time
 static ssize_t show_down_sample_time(struct kobject *kobj,
@@ -883,6 +914,7 @@ static struct global_attr freq_table_attr = __ATTR(freq_table, 0444,
 
 static struct attribute *lulzactive_attributes[] = {
 	&inc_cpu_load_attr.attr,
+	&dec_cpu_load_attr.attr,
 	&up_sample_time_attr.attr,
 	&down_sample_time_attr.attr,
 	&pump_up_step_attr.attr,
