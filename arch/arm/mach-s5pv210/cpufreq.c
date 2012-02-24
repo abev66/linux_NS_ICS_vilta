@@ -100,10 +100,10 @@ struct s5pv210_dvs_conf {
 };
 
 #ifdef CONFIG_CUSTOM_VOLTAGE
-unsigned long arm_volt_max = 1400000;
+unsigned long arm_volt_max = 1500000;
 unsigned long int_volt_max = 1250000;
 #else
-const unsigned long arm_volt_max = 1400000;
+const unsigned long arm_volt_max = 1500000;
 const unsigned long int_volt_max = 1250000;
 #endif
 
@@ -124,11 +124,11 @@ static struct s5pv210_dvs_conf dvs_conf[] = {
 // 		.arm_volt   = 1325000,
 // 		.int_volt   = 1100000,
 // 	},
-// //      1260MHz
-// 	[L0] = {
-// 		.arm_volt   = 1350000,
-// 		.int_volt   = 1125000,
-// 	},
+//      1260MHz
+	[L0] = {
+		.arm_volt   = 1400000,
+		.int_volt   = 1125000,
+	},
 // 	1000MHz
 	[L1] = {
 		.arm_volt   = 1250000,
@@ -151,7 +151,7 @@ static struct s5pv210_dvs_conf dvs_conf[] = {
 	},
 // 	100MHz
 	[L5] = {
-		.arm_volt   = 950000,
+		.arm_volt   = 900000,
 		.int_volt   = 900000,
 	},
     
