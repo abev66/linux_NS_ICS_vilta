@@ -32,9 +32,6 @@ static struct clk *dmc1_clk;
 static struct cpufreq_freqs freqs;
 static DEFINE_MUTEX(set_freq_lock);
 
-// #define APLL_VAL_1460   ((1<<31)|(365<<16)|(6<<8)|(0))
-//  #define APLL_VAL_1300   ((1<<31)|(325<<16)|(6<<8)|(0))
-// #define APLL_VAL_1200	((1<<31)|(150<<16)|(3<<8)|(1))
 #define APLL_VAL_1260	((1<<31)|(315<<16)|(6<<8)|(1))
 #define APLL_VAL_1000	((1<<31)|(125<<16)|(3<<8)|(1))
 #define APLL_VAL_800	((1<<31)|(100<<16)|(3<<8)|(1))
@@ -80,9 +77,6 @@ enum s5pv210_dmc_port {
 };
 
 static struct cpufreq_frequency_table s5pv210_freq_table[] = {
-// 	{L0, 1460*1000},
-// 	{L0, 1300*1000},
-// 	{L2, 1200*1000},
  	{L0, 1260*1000},
 	{L1, 1000*1000},
 	{L2, 800*1000},
@@ -109,21 +103,6 @@ const unsigned long int_volt_max = 1250000;
 
 // Default Voltages
 static struct s5pv210_dvs_conf dvs_conf[] = {
-// //   1460MHz
-// 	[L0] = {
-// 		.arm_volt   = 1450000,
-// 		.int_volt   = 1200000,
-// 	},
-//  // 	1300MHz
-//  	[L0] = {
-//  		.arm_volt   = 1475000,
-//  		.int_volt   = 1150000,
-//  	},
-// // 	1200MHz
-// 	[L2] = {
-// 		.arm_volt   = 1325000,
-// 		.int_volt   = 1100000,
-// 	},
 //      1260MHz
 	[L0] = {
 		.arm_volt   = 1400000,
@@ -162,16 +141,9 @@ static u32 clkdiv_val[6][11] = {
 	 * HCLK_DSYS, PCLK_DSYS, HCLK_PSYS, PCLK_PSYS, ONEDRAM,
 	 * MFC, G3D }
 	 */
-	
-// 	/* L0 : [1500/200/200/100][166/83][133/66][200/200] */
-// 	{0, 6, 6, 1, 3, 1, 4, 1, 3, 0, 0},
-
-//  	/* L1 : [1300/200/200/100][166/83][133/66][200/200] */
-//  	{0, 5, 5, 1, 3, 1, 4, 1, 3, 0, 0},
 
  	/* L0 : [1260/200/200/100][166/83][133/66][200/200] */
  	{0, 5, 5, 1, 3, 1, 4, 1, 3, 0, 0},
-	
 	/* L1 : [1000/200/200/100][166/83][133/66][200/200] */
 	{0, 4, 4, 1, 3, 1, 4, 1, 3, 0, 0},
 	/* L2 : [800/200/200/100][166/83][133/66][200/200] */
@@ -416,21 +388,6 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 		 */
         
         switch ( index ) {
-//             case L0:
-//                 /* APLL FOUT becomes 1460 Mhz */
-//                 __raw_writel(APLL_VAL_1460, S5P_APLL_CON);
-//                 break;
-//                 
-//             case L1:
-//                 /* APLL FOUT becomes 1300 Mhz */
-//                 __raw_writel(APLL_VAL_1300, S5P_APLL_CON);
-//                 break;
-// 		
-//             case L2:
-//                 /* APLL FOUT becomes 1200 Mhz */
-//                 __raw_writel(APLL_VAL_1200, S5P_APLL_CON);
-//                 break;
-		
 	    case L0:
                 /* APLL FOUT becomes 1260 Mhz */
                 __raw_writel(APLL_VAL_1260, S5P_APLL_CON);
@@ -703,14 +660,6 @@ static int __init s5pv210_cpu_init(struct cpufreq_policy *policy)
 	cpufreq_frequency_table_get_attr(s5pv210_freq_table, policy->cpu);
 
 	policy->cpuinfo.transition_latency = 40000;
-    
-    
-//     ret = cpufreq_frequency_table_cpuinfo(policy, s5pv210_freq_table);
-//     
-// 	if (!ret)
-// 	    policy->max = 1000000;
-//     
-// 	return ret;
 	
 	return cpufreq_frequency_table_cpuinfo(policy, s5pv210_freq_table);
 
