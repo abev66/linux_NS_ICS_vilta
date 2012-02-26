@@ -622,7 +622,7 @@ config TOUCH_WAKE
 
 config WIRELESS_PMFAST
        bool "Use PM_FAST flag as power management for wireless adapter"
-       default y
+       default n
        help
          Say Y here to us PM_FAST for wireless power management.
          Uses more power but it better at keeping connections.
