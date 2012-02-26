@@ -127,7 +127,7 @@ static struct s5pv210_dvs_conf dvs_conf[] = {
 //      1260MHz
 	[L0] = {
 		.arm_volt   = 1400000,
-		.int_volt   = 1100000,
+		.int_volt   = 1125000,
 	},
 // 	1000MHz
 	[L1] = {
@@ -151,7 +151,7 @@ static struct s5pv210_dvs_conf dvs_conf[] = {
 	},
 // 	100MHz
 	[L5] = {
-		.arm_volt   = 900000,
+		.arm_volt   = 950000,
 		.int_volt   = 900000,
 	},
     
