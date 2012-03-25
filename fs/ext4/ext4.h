@@ -533,6 +533,11 @@ struct ext4_new_group_data {
 #define EXT4_FREE_BLOCKS_NO_QUOT_UPDATE	0x0008
 
 /*
+ * Flags used by ext4_discard_partial_page_buffers
+ */
+#define EXT4_DSCRD_PARTIAL_PG_ZERO_UNMAPED	0x0001
+
+/*
  * ioctl commands
  */
 #define	EXT4_IOC_GETFLAGS		FS_IOC_GETFLAGS
@@ -1121,6 +1126,8 @@ struct ext4_sb_info {
 	u32 s_hash_seed[4];
 	int s_def_hash_version;
 	int s_hash_unsigned;	/* 3 if hash should be signed, 0 if not */
+    int s_dirty;
+    struct percpu_counter s_freeclusters_counter;
 	struct percpu_counter s_freeblocks_counter;
 	struct percpu_counter s_freeinodes_counter;
 	struct percpu_counter s_dirs_counter;
@@ -1843,6 +1850,12 @@ extern int ext4_block_truncate_page(handle_t *handle,
 		struct address_space *mapping, loff_t from);
 extern int ext4_block_zero_page_range(handle_t *handle,
 		struct address_space *mapping, loff_t from, loff_t length);
+extern int ext4_discard_partial_page_buffers(handle_t *handle,
+		struct address_space *mapping, loff_t from,
+		loff_t length, int flags);
+extern int ext4_discard_partial_page_buffers_no_lock(handle_t *handle,
+		struct inode *inode, struct page *page, loff_t from,
+		loff_t length, int flags);
 extern int ext4_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf);
 extern qsize_t *ext4_get_reserved_space(struct inode *inode);
 extern void ext4_da_update_reserve_space(struct inode *inode,
@@ -2132,7 +2145,7 @@ static inline void ext4_unlock_group(struct super_block *sb,
 static inline void ext4_mark_super_dirty(struct super_block *sb)
 {
 	if (EXT4_SB(sb)->s_journal == NULL)
-		sb->s_dirt =1;
+		__ext4_mark_super_dirty(sb);
 }
 
 /*
