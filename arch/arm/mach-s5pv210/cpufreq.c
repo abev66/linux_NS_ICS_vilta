@@ -32,7 +32,7 @@ static struct clk *dmc1_clk;
 static struct cpufreq_freqs freqs;
 static DEFINE_MUTEX(set_freq_lock);
 
-#define APLL_VAL_1280	((1<<31)|(320<<16)|(6<<8)|(1))
+#define APLL_VAL_1260	((1<<31)|(315<<16)|(6<<8)|(1))
 #define APLL_VAL_1000	((1<<31)|(125<<16)|(3<<8)|(1))
 #define APLL_VAL_800	((1<<31)|(100<<16)|(3<<8)|(1))
 
@@ -62,7 +62,7 @@ struct dram_conf {
 static struct dram_conf s5pv210_dram_conf[2];
 
 enum perf_level {
-	L0, L1, L2, L3, L4, L5
+	L0, L1, L2, L3, L4,L5
 };
 
 enum s5pv210_mem_type {
@@ -77,7 +77,7 @@ enum s5pv210_dmc_port {
 };
 
 static struct cpufreq_frequency_table s5pv210_freq_table[] = {
- 	{L0, 1280*1000},
+ 	{L0, 1260*1000},
 	{L1, 1000*1000},
 	{L2, 800*1000},
 	{L3, 400*1000},
@@ -103,9 +103,9 @@ const unsigned long int_volt_max = 1250000;
 
 // Default Voltages
 static struct s5pv210_dvs_conf dvs_conf[] = {
-//      1280MHz
+//      1260MHz
 	[L0] = {
-		.arm_volt   = 1425000,
+		.arm_volt   = 1400000,
 		.int_volt   = 1100000,
 	},
 // 	1000MHz
@@ -142,7 +142,7 @@ static u32 clkdiv_val[6][11] = {
 	 * MFC, G3D }
 	 */
 
- 	/* L0 : [1280/200/200/100][166/83][133/66][200/200] */
+ 	/* L0 : [1260/200/200/100][166/83][133/66][200/200] */
  	{0, 5, 5, 1, 3, 1, 4, 1, 3, 0, 0},
 	/* L1 : [1000/200/200/100][166/83][133/66][200/200] */
 	{0, 4, 4, 1, 3, 1, 4, 1, 3, 0, 0},
@@ -389,8 +389,8 @@ static int s5pv210_target(struct cpufreq_policy *policy,
         
         switch ( index ) {
 	    case L0:
-                /* APLL FOUT becomes 1280 Mhz */
-                __raw_writel(APLL_VAL_1280, S5P_APLL_CON);
+                /* APLL FOUT becomes 1260 Mhz */
+                __raw_writel(APLL_VAL_1260, S5P_APLL_CON);
                 break;
 		
             case L1:
