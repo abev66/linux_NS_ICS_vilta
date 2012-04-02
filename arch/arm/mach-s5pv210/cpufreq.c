@@ -62,7 +62,7 @@ struct dram_conf {
 static struct dram_conf s5pv210_dram_conf[2];
 
 enum perf_level {
-	L0, L1, L2, L3, L4,L5
+	L0, L1, L2, L3, L4, L5
 };
 
 enum s5pv210_mem_type {
@@ -105,7 +105,7 @@ const unsigned long int_volt_max = 1250000;
 static struct s5pv210_dvs_conf dvs_conf[] = {
 //      1260MHz
 	[L0] = {
-		.arm_volt   = 1400000,
+		.arm_volt   = 1425000,
 		.int_volt   = 1100000,
 	},
 // 	1000MHz
