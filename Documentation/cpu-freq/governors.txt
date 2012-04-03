@@ -265,6 +265,10 @@ Finally, smartass is a highly customizable governor with almost everything
 tweakable through the sysfs. For a detailed explaination of each tunable,
 please see the inline comments at the begging of the code (smartass2.c).
 
+input_boost: If non-zero, boost speed of all CPUs to hispeed_freq on
+touchscreen activity.  Default is 0.
+
+
 3. The Governor Interface in the CPUfreq Core
 =============================================
 
