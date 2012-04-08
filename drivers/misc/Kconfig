@@ -627,4 +627,10 @@ config WIRELESS_PMFAST
          Say Y here to us PM_FAST for wireless power management.
          Uses more power but it better at keeping connections.
          
+config FSYNC_CONTROL
+        bool "Support for FSync Control"
+        default y
+        help
+          Say Y here to enable FSync Control
+
 endif # MISC_DEVICES
