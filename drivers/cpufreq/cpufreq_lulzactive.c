@@ -81,7 +81,7 @@ static unsigned long up_sample_time;
 /*
  * The minimum amount of time to spend at a frequency before we can step down.
  */
-#define DEFAULT_DOWN_SAMPLE_TIME 50000
+#define DEFAULT_DOWN_SAMPLE_TIME 40000
 static unsigned long down_sample_time;
 
 /*
@@ -95,33 +95,32 @@ enum {
 	LULZACTIVE_DEBUG_SUSPEND=8,
 };
 //#define DEFAULT_DEBUG_MODE (LULZACTIVE_DEBUG_EARLY_SUSPEND | LULZACTIVE_DEBUG_START_STOP | LULZACTIVE_DEBUG_SUSPEND)
-#define DEFAULT_DEBUG_MODE (0)
+#define DEFAULT_DEBUG_MODE (1)
 
 /*
  * CPU freq will be increased if measured load > inc_cpu_load;
  */
-#define DEFAULT_INC_CPU_LOAD 80
+#define DEFAULT_INC_CPU_LOAD 75
 static unsigned long inc_cpu_load;
 
 /*
  * CPU freq will be decreased if measured load < dec_cpu_load;
- * not implemented yet.
  */
-#define DEFAULT_DEC_CPU_LOAD 45
+#define DEFAULT_DEC_CPU_LOAD 40
 static unsigned long dec_cpu_load;
 
 /*
  * Increasing frequency table index
  * zero disables and causes to always jump straight to max frequency.
  */
-#define DEFAULT_PUMP_UP_STEP 3
+#define DEFAULT_PUMP_UP_STEP 1
 static unsigned long pump_up_step;
 
 /*
  * Decreasing frequency table index
  * zero disables and will calculate frequency according to load heuristic.
  */
-#define DEFAULT_PUMP_DOWN_STEP 0
+#define DEFAULT_PUMP_DOWN_STEP 1
 static unsigned long pump_down_step;
 
 /*
@@ -134,7 +133,7 @@ static unsigned int early_suspended;
 #define DEFAULT_SCREEN_OFF_MIN_STEP	(SCREEN_OFF_LOWEST_STEP)
 static unsigned long screen_off_min_step;
 
-#define DEBUG 0
+#define DEBUG 1
 #define BUFSZ 128
 
 #if DEBUG
@@ -301,13 +300,14 @@ static void cpufreq_lulzactive_timer(unsigned long data)
 	/* If we raced with cancelling a timer, skip. */
 	if (!idle_exit_time) {
 		dbgpr("timer %d: no valid idle exit sample\n", (int) data);
-		goto exit;
+		return;
 	}
 	
 	/* let it be when s5pv310 contorl the suspending by tegrak */
 	//if (suspending) {
 	//	goto rearm;
 	//}
+    
     
 #if DEBUG
 	if ((int) jiffies - (int) pcpu->cpu_timer.expires >= 10)
@@ -351,39 +351,39 @@ static void cpufreq_lulzactive_timer(unsigned long data)
 	 */
 	if (load_since_change > cpu_load)
 		cpu_load = load_since_change;
-    
+	
 	/* 
 	 * START lulzactive algorithm section
 	 */
+	
 	if (cpu_load >= inc_cpu_load) {
-		if (pump_up_step && pcpu->policy->cur < pcpu->policy->max) {
+		if ( pump_up_step && pcpu->policy->cur < pcpu->policy->max ) {
 			ret = cpufreq_frequency_table_target(
                                                  pcpu->policy, pcpu->freq_table,
                                                  pcpu->policy->cur, CPUFREQ_RELATION_H,
                                                  &index);
-			if (ret < 0) {
+			if (ret < 0)
 				goto rearm;
-			}
             
 			// apply pump_up_step by tegrak
 			index -= pump_up_step;
+			
 			if (index < 0)
 				index = 0;
             
 			new_freq = pcpu->freq_table[index].frequency;
 		}
-		else
+		else 
 			new_freq = pcpu->policy->max;
 	}
-	else if(cpu_load < dec_cpu_load) {	
+	else if (cpu_load < dec_cpu_load) {		
 		if (pump_down_step) {
 			ret = cpufreq_frequency_table_target(
                                                  pcpu->policy, pcpu->freq_table,
                                                  pcpu->policy->cur, CPUFREQ_RELATION_H,
                                                  &index);
-			if (ret < 0) {
+			if (ret < 0)
 				goto rearm;
-			}
             
 			// apply pump_down_step by tegrak
 			index += pump_down_step;
@@ -401,21 +401,30 @@ static void cpufreq_lulzactive_timer(unsigned long data)
                                                  pcpu->policy, pcpu->freq_table,
                                                  new_freq, CPUFREQ_RELATION_H,
                                                  &index);
-			if (ret < 0) {
+			if (ret < 0)
 				goto rearm;
-			}
+			
 			new_freq = pcpu->freq_table[index].frequency;
 		}		
 	} else
 		new_freq = pcpu->policy->cur;
-    
+	
 	// adjust freq when screen off
 	new_freq = adjust_screen_off_freq(pcpu, new_freq);
     
 	if (pcpu->target_freq == new_freq)
 	{
 		dbgpr("timer %d: load=%d, already at %d\n", (int) data, cpu_load, new_freq);
-		goto rearm_if_notmax;
+		
+		/*
+		* Already set max speed and don't see a need to change that,
+		* wait until next idle to re-evaluate, don't need timer.
+		*/
+		
+		if (pcpu->target_freq == pcpu->policy->max)
+			return;
+		else 
+			goto rearm;
 	}
     
 	/*
@@ -429,13 +438,11 @@ static void cpufreq_lulzactive_timer(unsigned long data)
 			goto rearm;
 		}
 	}
-	else {
-		if (cputime64_sub(pcpu->timer_run_time, pcpu->freq_change_time) <
+	else if (cputime64_sub(pcpu->timer_run_time, pcpu->freq_change_time) <
 		    up_sample_time) {
-			dbgpr("timer %d: load=%d cur=%d tgt=%d not yet\n", (int) data, cpu_load, pcpu->target_freq, new_freq);
+		dbgpr("timer %d: load=%d cur=%d tgt=%d not yet\n", (int) data, cpu_load, pcpu->target_freq, new_freq);
 			/* don't reset timer */
-			goto rearm;
-		}
+		goto rearm;
 	}
     
 	if (suspending && debug_mode & LULZACTIVE_DEBUG_SUSPEND) {
@@ -469,15 +476,7 @@ static void cpufreq_lulzactive_timer(unsigned long data)
 		spin_unlock(&up_cpumask_lock);
 		wake_up_process(up_task);
 	}
-    
-rearm_if_notmax:
-	/*
-	 * Already set max speed and don't see a need to change that,
-	 * wait until next idle to re-evaluate, don't need timer.
-	 */
-	if (pcpu->target_freq == pcpu->policy->max)
-		goto exit;
-    
+   
 rearm:
 	if (!timer_pending(&pcpu->cpu_timer)) {
 		/*
@@ -490,7 +489,7 @@ rearm:
             
 			if (pcpu->idling) {
 				dbgpr("timer %d: cpu idle, don't re-arm\n", (int) data);
-				goto exit;
+				return;
 			}
             
 			pcpu->timer_idlecancel = 1;
@@ -502,7 +501,6 @@ rearm:
 		dbgpr("timer %d: set timer for %lu exit=%llu\n", (int) data, pcpu->cpu_timer.expires, pcpu->idle_exit_time);
 	}
     
-exit:
 	return;
 }
 
@@ -541,24 +539,23 @@ static void cpufreq_lulzactive_idle(void)
 			      pcpu->idle_exit_time);
 		}
 #endif
-	} else {
+	} else if (pending && pcpu->timer_idlecancel) {
 		/*
 		 * If at min speed and entering idle after load has
 		 * already been evaluated, and a timer has been set just in
 		 * case the CPU suddenly goes busy, cancel that timer.  The
 		 * CPU didn't go busy; we'll recheck things upon idle exit.
 		 */
-		if (pending && pcpu->timer_idlecancel) {
-			dbgpr("idle: cancel timer for %lu\n", pcpu->cpu_timer.expires);
-			del_timer(&pcpu->cpu_timer);
-			/*
-			 * Ensure last timer run time is after current idle
-			 * sample start time, so next idle exit will always
-			 * start a new idle sampling period.
-			 */
-			pcpu->idle_exit_time = 0;
-			pcpu->timer_idlecancel = 0;
-		}
+		
+		dbgpr("idle: cancel timer for %lu\n", pcpu->cpu_timer.expires);
+		del_timer(&pcpu->cpu_timer);
+		/*
+		 * Ensure last timer run time is after current idle
+		 * sample start time, so next idle exit will always
+		 * start a new idle sampling period.
+		 */
+		pcpu->idle_exit_time = 0;
+		pcpu->timer_idlecancel = 0;
 	}
     
 	pm_idle_old();
@@ -735,8 +732,6 @@ static ssize_t store_dec_cpu_load(struct kobject *kobj,
 
 static struct global_attr dec_cpu_load_attr = __ATTR(dec_cpu_load, 0666,
                                                      show_dec_cpu_load, store_dec_cpu_load);
-
-
 
 // down_sample_time
 static ssize_t show_down_sample_time(struct kobject *kobj,
