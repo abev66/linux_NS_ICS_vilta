@@ -286,6 +286,31 @@ struct fname {
 	char		name[0];
 };
 
+
+/*
+ * ext4_dir_llseek() calls generic_file_llseek_size to handle htree
+ * directories, where the "offset" is in terms of the filename hash
+ * value instead of the byte offset.
+ *
+ * Because we may return a 64-bit hash that is well beyond offset limits,
+ * we need to pass the max hash as the maximum allowable offset in
+ * the htree directory case.
+ *
+ * For non-htree, ext4_llseek already chooses the proper max offset.
+ */
+loff_t ext4_dir_llseek(struct file *file, loff_t offset, int origin)
+{
+	struct inode *inode = file->f_mapping->host;
+	int dx_dir = is_dx_dir(inode);
+
+	if (likely(dx_dir))
+		return generic_file_llseek_size(file, offset, origin,
+						ext4_get_htree_eof(file));
+	else
+		return ext4_llseek(file, offset, origin);
+}
+
+
 /*
  * This functoin implements a non-recursive way of freeing all of the
  * nodes in the red-black tree.
