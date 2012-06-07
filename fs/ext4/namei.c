@@ -1023,6 +1023,7 @@ static struct dentry *ext4_lookup(struct inode *dir, struct dentry *dentry, stru
 	struct inode *inode;
 	struct ext4_dir_entry_2 *de;
 	struct buffer_head *bh;
+    struct dentry *ret;
 
 	if (dentry->d_name.len > EXT4_NAME_LEN)
 		return ERR_PTR(-ENAMETOOLONG);
@@ -1048,7 +1049,12 @@ static struct dentry *ext4_lookup(struct inode *dir, struct dentry *dentry, stru
 			}
 		}
 	}
-	return d_splice_alias(inode, dentry);
+	ret = d_splice_alias(inode, dentry);
+    if (IS_ERR(ret)) {
+    EXT4_ERROR_INODE(dir, "directory corrupted");
+    iput(inode);
+      }
+    return ret;
 }
 
 
