@@ -393,7 +393,7 @@ static void cpufreq_smartass_freq_change_time_work(struct work_struct *work)
 
 		if (old_freq != policy->cur) {
 			// frequency was changed by someone else?
-			printk(KERN_WARNING "Smartass: frequency changed by 3rd party: %d to %d\n",
+			dprintk(SMARTASS_DEBUG_ALG, KERN_WARNING "Smartass: frequency changed by 3rd party: %d to %d\n",
 			       old_freq,policy->cur);
 			new_freq = old_freq;
 		}
