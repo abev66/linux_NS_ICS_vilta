@@ -111,6 +111,7 @@ static struct dbs_tuners {
 	unsigned int ignore_nice;
 	unsigned int sampling_down_factor;
 	unsigned int powersave_bias;
+	unsigned int io_is_busy;
 } dbs_tuners_ins = {
 	.up_threshold = DEF_FREQUENCY_UP_THRESHOLD,
 	.sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR,
@@ -581,6 +582,19 @@ static inline void dbs_timer_exit(struct cpu_dbs_info_s *dbs_info)
 	cancel_delayed_work_sync(&dbs_info->work);
 }
 
+static int should_io_be_busy(void)
+{
+#if defined(CONFIG_X86)
+	/*
+	* For Intel, Core 2 (model 15) andl later have an efficient idle.
+	*/
+	if (boot_cpu_data.x86_vendor == X86_VENDOR_INTEL &&
+	boot_cpu_data.x86 == 6 &&
+	boot_cpu_data.x86_model >= 15)
+	return 1;
+#endif
+	return 0;
+}
 
 static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				   unsigned int event)
