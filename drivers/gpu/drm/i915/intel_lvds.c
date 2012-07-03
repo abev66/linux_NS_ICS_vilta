@@ -714,7 +714,7 @@ static const struct dmi_system_id intel_no_lvds[] = {
 	},
 	{
 		.callback = intel_no_lvds_dmi_callback,
-		.ident = "AOpen i45GMx-I",
+                .ident = "AOpen i45GMx-I",
                 .matches = {
                         DMI_MATCH(DMI_BOARD_VENDOR, "AOpen"),
                         DMI_MATCH(DMI_BOARD_NAME, "i45GMx-I"),

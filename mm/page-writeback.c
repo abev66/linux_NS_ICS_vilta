@@ -91,6 +91,8 @@ unsigned int dirty_writeback_interval = 30 * 100; /* centiseconds */
 
 EXPORT_SYMBOL_GPL(dirty_writeback_interval);
 
+EXPORT_SYMBOL_GPL(dirty_writeback_interval);
+
 /*
  * The longest time for which data is allowed to remain dirty
  */

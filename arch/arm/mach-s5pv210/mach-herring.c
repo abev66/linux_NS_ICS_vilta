@@ -32,6 +32,9 @@
 #include <linux/irq.h>
 #include <linux/skbuff.h>
 #include <linux/console.h>
+#ifdef CONFIG_FORCE_FAST_CHARGE
+#include <linux/fastchg.h>
+#endif
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -367,21 +370,20 @@ static struct s3cfb_lcd r61408 = {
 
 #ifdef CONFIG_S5PV210_BIGMEM
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0 (4608 * SZ_1K)
-#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1 (0)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2 (5120 * SZ_1K)
 #else
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0 (6144 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1 (9900 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2 (6144 * SZ_1K)
 #endif
-#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0 (36864 * SZ_1K)
-#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1 (36864 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0 (11264 * SZ_1K) // 11Mb
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1 (11264 * SZ_1K) // 11Mb
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMD (S5PV210_LCD_WIDTH * \
 S5PV210_LCD_HEIGHT * 4 * \
 (CONFIG_FB_S3C_NR_BUFFERS + \
 (CONFIG_FB_S3C_NUM_OVLY_WIN * \
 CONFIG_FB_S3C_NUM_BUF_OVLY_WIN)))
-#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (8192 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (4092 * SZ_1K)
 
 static struct s5p_media_device herring_media_devs[] = {
 	[0] = {
@@ -403,13 +405,6 @@ static struct s5p_media_device herring_media_devs[] = {
 		.name = "fimc0",
 		.bank = 1,
 		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0,
-		.paddr = 0,
-	},
-	[3] = {
-		.id = S5P_MDEV_FIMC1,
-		.name = "fimc1",
-		.bank = 1,
-		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1,
 		.paddr = 0,
 	},
 	[4] = {
@@ -2952,27 +2947,36 @@ static void k3g_irq_init(void)
 }
 
 
-static void fsa9480_usb_cb(bool attached)
-{
-	struct usb_gadget *gadget = platform_get_drvdata(&s3c_device_usbgadget);
-
-	if (gadget) {
-		if (attached)
-			usb_gadget_vbus_connect(gadget);
-		else
-			usb_gadget_vbus_disconnect(gadget);
-	}
-
-	set_cable_status = attached ? CABLE_TYPE_USB : CABLE_TYPE_NONE;
-	if (callbacks && callbacks->set_cable)
-		callbacks->set_cable(callbacks, set_cable_status);
-}
-
 static void fsa9480_charger_cb(bool attached)
 {
-	set_cable_status = attached ? CABLE_TYPE_AC : CABLE_TYPE_NONE;
-	if (callbacks && callbacks->set_cable)
-		callbacks->set_cable(callbacks, set_cable_status);
+        set_cable_status = attached ? CABLE_TYPE_AC : CABLE_TYPE_NONE;
+        if (callbacks && callbacks->set_cable)
+                callbacks->set_cable(callbacks, set_cable_status);
+}
+
+
+static void fsa9480_usb_cb(bool attached)
+{
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	if (force_fast_charge != 0) {
+		fsa9480_charger_cb(attached);
+	} else {
+#endif
+		struct usb_gadget *gadget = platform_get_drvdata(&s3c_device_usbgadget);
+
+		if (gadget) {
+			if (attached)
+				usb_gadget_vbus_connect(gadget);
+			else
+				usb_gadget_vbus_disconnect(gadget);
+		}
+
+		set_cable_status = attached ? CABLE_TYPE_USB : CABLE_TYPE_NONE;
+		if (callbacks && callbacks->set_cable)
+			callbacks->set_cable(callbacks, set_cable_status);
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	}
+#endif
 }
 
 static struct switch_dev switch_dock = {
@@ -2981,23 +2985,31 @@ static struct switch_dev switch_dock = {
 
 static void fsa9480_deskdock_cb(bool attached)
 {
-	struct usb_gadget *gadget = platform_get_drvdata(&s3c_device_usbgadget);
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	if (force_fast_charge != 0) {
+	        fsa9480_charger_cb(attached);
+        } else {
+#endif
+		struct usb_gadget *gadget = platform_get_drvdata(&s3c_device_usbgadget);
 
-	if (attached)
-		switch_set_state(&switch_dock, 1);
-	else
-		switch_set_state(&switch_dock, 0);
-
-	if (gadget) {
 		if (attached)
-			usb_gadget_vbus_connect(gadget);
+			switch_set_state(&switch_dock, 1);
 		else
-			usb_gadget_vbus_disconnect(gadget);
-	}
+			switch_set_state(&switch_dock, 0);
 
-	set_cable_status = attached ? CABLE_TYPE_USB : CABLE_TYPE_NONE;
-	if (callbacks && callbacks->set_cable)
-		callbacks->set_cable(callbacks, set_cable_status);
+		if (gadget) {
+			if (attached)
+				usb_gadget_vbus_connect(gadget);
+			else
+				usb_gadget_vbus_disconnect(gadget);
+		}
+
+		set_cable_status = attached ? CABLE_TYPE_USB : CABLE_TYPE_NONE;
+		if (callbacks && callbacks->set_cable)
+			callbacks->set_cable(callbacks, set_cable_status);
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	}
+#endif
 }
 
 static void fsa9480_cardock_cb(bool attached)
@@ -4942,6 +4954,8 @@ static unsigned int herring_cdma_wimax_sleep_gpio_table[][3] = {
 	{ S5PV210_GPJ2(2), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPJ2(3), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPJ2(4), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPJ2(4), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_DOWN},
+
 	{ S5PV210_GPJ2(5), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 
 	{ S5PV210_GPJ2(6), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
@@ -5376,6 +5390,7 @@ int __init herring_init_wifi_mem(void)
 
 /* Customized Locale table : OPTIONAL feature */
 #define WLC_CNTRY_BUF_SZ       4
+
 typedef struct cntry_locales_custom {
 	char iso_abbrev[WLC_CNTRY_BUF_SZ];
 	char custom_locale[WLC_CNTRY_BUF_SZ];

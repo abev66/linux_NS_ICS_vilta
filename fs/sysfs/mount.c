@@ -19,6 +19,8 @@
 #include <linux/module.h>
 #include <linux/magic.h>
 #include <linux/slab.h>
+#include <linux/dcache.h>
+
 
 #include "sysfs.h"
 
@@ -61,10 +63,9 @@ static int sysfs_fill_super(struct super_block *sb, void *data, int silent)
 	}
 
 	/* instantiate and link root dentry */
-	root = d_alloc_root(inode);
+	root = d_make_root(inode);
 	if (!root) {
 		pr_debug("%s: could not get root dentry!\n",__func__);
-		iput(inode);
 		return -ENOMEM;
 	}
 	root->d_fsdata = &sysfs_root;
