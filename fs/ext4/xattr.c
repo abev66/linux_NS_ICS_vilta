@@ -490,12 +490,9 @@ ext4_xattr_release_block(handle_t *handle, struct inode *inode,
         unlock_buffer(bh);
 	} else {
 		le32_add_cpu(&BHDR(bh)->h_refcount, -1);
-		if (ce)
-			mb_cache_entry_release(ce);
-		unlock_buffer(bh);
-		if (ce)
-		    mb_cache_entry_release(ce);
-		unlock_buffer(bh);
+        if (ce)
+            mb_cache_entry_release(ce);
+        unlock_buffer(bh);
 		error = ext4_handle_dirty_metadata(handle, inode, bh);
 		if (IS_SYNC(inode))
 			ext4_handle_sync(handle);
