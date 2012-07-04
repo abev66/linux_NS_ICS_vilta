@@ -36,8 +36,6 @@ obj-$(CONFIG_MACH_HERRING)	+= herring-touchkey-led.o
 
 obj-$(CONFIG_MACH_HERRING)	+= dev-herring-phone.o
 
-obj-$(CONFIG_FORCE_FAST_CHARGE)         += fastchg.o
-
 # device support
 
 obj-y				+= dev-audio.o
