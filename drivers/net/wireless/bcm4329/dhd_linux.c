@@ -564,7 +564,7 @@ static void dhd_set_packet_filter(int value, dhd_pub_t *dhd)
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 {
-#ifdef CONFIG_WIRELESS_PMFAST
+#ifdef CONFIG_BCM4329_PMFAST
 	int power_mode = PM_FAST;
 #else
 	int power_mode = PM_MAX;

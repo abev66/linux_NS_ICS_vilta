@@ -2098,12 +2098,6 @@ static int ext4_ext_check_cache(struct inode *inode, ext4_lblk_t block,
 		ret = 1;
 	}
 errout:
-#if 0
-	if (!ret)
-		sbi->extent_cache_misses++;
-	else
-		sbi->extent_cache_hits++;
-#endif
     
 	spin_unlock(&EXT4_I(inode)->i_block_reservation_lock);
 	return ret;
@@ -3891,6 +3885,7 @@ long ext4_fallocate(struct file *file, int mode, loff_t offset, loff_t len)
 	int ret = 0;
 	int ret2 = 0;
 	int retries = 0;
+    int flags;
 	struct ext4_map_blocks map;
 	unsigned int credits, blkbits = inode->i_blkbits;
 
@@ -3902,7 +3897,7 @@ long ext4_fallocate(struct file *file, int mode, loff_t offset, loff_t len)
 		return -EOPNOTSUPP;
 
 	/* Return error if mode is not supported */
-	if (mode & ~(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE))
+	if (mode & ~FALLOC_FL_SUPPORTED_FLAGS)
 		return -EOPNOTSUPP;
 
 	if (mode & FALLOC_FL_PUNCH_HOLE)
@@ -3960,8 +3955,9 @@ retry:
 		ext4_falloc_update_inode(inode, mode, new_size,
 					 (map.m_flags & EXT4_MAP_NEW));
 		ext4_mark_inode_dirty(handle, inode);
+
 		if ((file->f_flags & O_SYNC) && ret >= max_blocks)
-		  ext4_handle_sync(handle);
+		    ext4_handle_sync(handle);
 		ret2 = ext4_journal_stop(handle);
 		if (ret2)
 			break;
@@ -3975,6 +3971,13 @@ retry:
 	trace_ext4_fallocate_exit(inode, offset, max_blocks,
 				ret > 0 ? ret2 : ret);
 	return ret > 0 ? ret2 : ret;
+
+
+    if (mode & FALLOC_FL_NO_HIDE_STALE)
+ 		flags = EXT4_GET_BLOCKS_CREATE;
+ 	else
+ 		flags = EXT4_GET_BLOCKS_CREATE_UNINIT_EXT;
+    
 }
 
 /*

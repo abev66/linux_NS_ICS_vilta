@@ -379,15 +379,7 @@ static void reg_regdb_query(const char *alpha2)
 
 	schedule_work(&reg_regdb_work);
 }
-
-/* Feel free to add any other sanity checks here */
-static void reg_regdb_size_check(void)
-{
-	/* We should ideally BUILD_BUG_ON() but then random builds would fail */
-	WARN_ONCE(!reg_regdb_size, "db.txt is empty, you should update it...");
-}
 #else
-static inline void reg_regdb_size_check(void) {}
 static inline void reg_regdb_query(const char *alpha2) {}
 #endif /* CONFIG_CFG80211_INTERNAL_REGDB */
 
@@ -1781,6 +1773,7 @@ static void restore_alpha2(char *alpha2, bool reset_user)
 static void restore_regulatory_settings(bool reset_user)
 {
 	char alpha2[2];
+	char world_alpha2[2];
 	struct reg_beacon *reg_beacon, *btmp;
 	struct regulatory_request *reg_request, *tmp;
 	LIST_HEAD(tmp_reg_req_list);
@@ -1831,11 +1824,13 @@ static void restore_regulatory_settings(bool reset_user)
 
 	/* First restore to the basic regulatory settings */
 	cfg80211_regdomain = cfg80211_world_regdom;
+	world_alpha2[0] = cfg80211_regdomain->alpha2[0];
+	world_alpha2[1] = cfg80211_regdomain->alpha2[1];
 
 	mutex_unlock(&reg_mutex);
 	mutex_unlock(&cfg80211_mutex);
 
-	regulatory_hint_core(cfg80211_regdomain->alpha2);
+	regulatory_hint_core(world_alpha2);
 
 	/*
 	 * This restores the ieee80211_regdom module parameter
@@ -2232,8 +2227,6 @@ int __init regulatory_init(void)
 
 	spin_lock_init(&reg_requests_lock);
 	spin_lock_init(&reg_pending_beacons_lock);
-
-	reg_regdb_size_check();
 
 	cfg80211_regdomain = cfg80211_world_regdom;
 

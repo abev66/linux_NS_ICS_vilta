@@ -764,6 +764,9 @@ struct inode {
 		struct rcu_head		i_rcu;
 	};
 	unsigned long		i_ino;
+  
+        unsigned int __i_nlink;
+    
 	atomic_t		i_count;
 	unsigned int		i_nlink;
 	dev_t			i_rdev;
@@ -1472,6 +1475,9 @@ struct super_block {
 	 * Saved pool identifier for cleancache (-1 means none)
 	 */
 	int cleancache_poolid;
+    
+    /* Number of inodes with nlink == 0 but still referenced */
+    atomic_long_t s_remove_count;
 };
 
 extern struct timespec current_fs_time(struct super_block *sb);
@@ -1729,6 +1735,7 @@ struct super_operations {
 #define I_DIRTY (I_DIRTY_SYNC | I_DIRTY_DATASYNC | I_DIRTY_PAGES)
 
 extern void __mark_inode_dirty(struct inode *, int);
+extern void set_nlink(struct inode *inode, unsigned int nlink);
 static inline void mark_inode_dirty(struct inode *inode)
 {
 	__mark_inode_dirty(inode, I_DIRTY);
@@ -2034,7 +2041,6 @@ extern void unregister_blkdev(unsigned int, const char *);
 extern struct block_device *bdget(dev_t);
 extern struct block_device *bdgrab(struct block_device *bdev);
 extern void bd_set_size(struct block_device *, loff_t size);
-extern sector_t blkdev_max_block(struct block_device *bdev);
 extern void bd_forget(struct inode *inode);
 extern void bdput(struct block_device *);
 extern void invalidate_bdev(struct block_device *);

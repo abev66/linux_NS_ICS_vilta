@@ -487,12 +487,9 @@ ext4_xattr_release_block(handle_t *handle, struct inode *inode,
 		ext4_free_blocks(handle, inode, bh, 0, 1,
 				 EXT4_FREE_BLOCKS_METADATA |
 				 EXT4_FREE_BLOCKS_FORGET);
-        unlock_buffer(bh);
+		unlock_buffer(bh);
 	} else {
 		le32_add_cpu(&BHDR(bh)->h_refcount, -1);
-		if (ce)
-			mb_cache_entry_release(ce);
-		unlock_buffer(bh);
 		if (ce)
 		    mb_cache_entry_release(ce);
 		unlock_buffer(bh);
@@ -503,7 +500,8 @@ ext4_xattr_release_block(handle_t *handle, struct inode *inode,
 		ea_bdebug(bh, "refcount now=%d; releasing",
 			  le32_to_cpu(BHDR(bh)->h_refcount));
 	
-	}
+	
+    }
 out:
 	ext4_std_error(inode->i_sb, error);
 	return;

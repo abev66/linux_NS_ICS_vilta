@@ -30,11 +30,11 @@
 
 #define DEF_FREQUENCY_DOWN_DIFFERENTIAL		(10)
 #define DEF_FREQUENCY_UP_THRESHOLD		(80)
-#define DEF_SAMPLE_RATE                 (40000)
-#define DEF_SAMPLING_DOWN_FACTOR		(1)
+#define DEF_SAMPLING_DOWN_FACTOR		(10)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define MICRO_FREQUENCY_DOWN_DIFFERENTIAL	(3)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(95)
+#define MICRO_FREQUENCY_DEF_SAMPLE_RATE    (15000)
 #define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
 #define MIN_FREQUENCY_UP_THRESHOLD		(11)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
@@ -111,6 +111,7 @@ static struct dbs_tuners {
 	unsigned int ignore_nice;
 	unsigned int sampling_down_factor;
 	unsigned int powersave_bias;
+	unsigned int io_is_busy;
 } dbs_tuners_ins = {
 	.up_threshold = DEF_FREQUENCY_UP_THRESHOLD,
 	.sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR,
@@ -581,6 +582,19 @@ static inline void dbs_timer_exit(struct cpu_dbs_info_s *dbs_info)
 	cancel_delayed_work_sync(&dbs_info->work);
 }
 
+static int should_io_be_busy(void)
+{
+#if defined(CONFIG_X86)
+	/*
+	* For Intel, Core 2 (model 15) andl later have an efficient idle.
+	*/
+	if (boot_cpu_data.x86_vendor == X86_VENDOR_INTEL &&
+	boot_cpu_data.x86 == 6 &&
+	boot_cpu_data.x86_model >= 15)
+	return 1;
+#endif
+	return 0;
+}
 
 static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				   unsigned int event)
@@ -633,12 +647,11 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			latency = policy->cpuinfo.transition_latency / 1000;
 			if (latency == 0)
 				latency = 1;
+
 			/* Bring kernel and HW constraints together */
-			min_sampling_rate = max(min_sampling_rate,
-					MIN_LATENCY_MULTIPLIER * latency);
-			dbs_tuners_ins.sampling_rate =
-				max(min_sampling_rate,
-				    latency * LATENCY_MULTIPLIER);
+			min_sampling_rate = MICRO_FREQUENCY_MIN_SAMPLE_RATE;
+			dbs_tuners_ins.sampling_rate = MICRO_FREQUENCY_DEF_SAMPLE_RATE;
+			dbs_tuners_ins.io_is_busy = should_io_be_busy();
 		}
 		mutex_unlock(&dbs_mutex);
 
@@ -681,7 +694,8 @@ static int __init cpufreq_gov_dbs_init(void)
 
 	idle_time = get_cpu_idle_time_us(cpu, &wall);
 	put_cpu();
-	if (idle_time != -1ULL) {
+	// if (idle_time != -1ULL) {
+	if (0) {
 		/* Idle micro accounting is supported. Use finer thresholds */
 		dbs_tuners_ins.up_threshold = MICRO_FREQUENCY_UP_THRESHOLD;
 		dbs_tuners_ins.down_differential =

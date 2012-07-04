@@ -367,7 +367,6 @@ static struct s3cfb_lcd r61408 = {
 
 #ifdef CONFIG_S5PV210_BIGMEM
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0 (4608 * SZ_1K)
-#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1 (0)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2 (5120 * SZ_1K)
 #else
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0 (6144 * SZ_1K)
@@ -381,7 +380,7 @@ S5PV210_LCD_HEIGHT * 4 * \
 (CONFIG_FB_S3C_NR_BUFFERS + \
 (CONFIG_FB_S3C_NUM_OVLY_WIN * \
 CONFIG_FB_S3C_NUM_BUF_OVLY_WIN)))
-#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (8192 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (4092 * SZ_1K)
 
 static struct s5p_media_device herring_media_devs[] = {
 	[0] = {
@@ -403,13 +402,6 @@ static struct s5p_media_device herring_media_devs[] = {
 		.name = "fimc0",
 		.bank = 1,
 		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0,
-		.paddr = 0,
-	},
-	[3] = {
-		.id = S5P_MDEV_FIMC1,
-		.name = "fimc1",
-		.bank = 1,
-		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1,
 		.paddr = 0,
 	},
 	[4] = {
@@ -438,7 +430,7 @@ static struct s5p_media_device herring_media_devs[] = {
 #ifdef CONFIG_CPU_FREQ
 static struct s5pv210_cpufreq_voltage smdkc110_cpufreq_volt[] = {
  	{
- 		.freq	= 1240000,
+ 		.freq	= 1260000,
  		.varm	= 1400000,
  		.vint	= 1100000,
  	},
@@ -4942,6 +4934,8 @@ static unsigned int herring_cdma_wimax_sleep_gpio_table[][3] = {
 	{ S5PV210_GPJ2(2), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPJ2(3), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPJ2(4), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPJ2(4), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_DOWN},
+
 	{ S5PV210_GPJ2(5), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 
 	{ S5PV210_GPJ2(6), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
@@ -5376,6 +5370,7 @@ int __init herring_init_wifi_mem(void)
 
 /* Customized Locale table : OPTIONAL feature */
 #define WLC_CNTRY_BUF_SZ       4
+
 typedef struct cntry_locales_custom {
 	char iso_abbrev[WLC_CNTRY_BUF_SZ];
 	char custom_locale[WLC_CNTRY_BUF_SZ];

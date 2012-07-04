@@ -1418,6 +1418,7 @@ static int pl011_startup(struct uart_port *port)
 	cr = UART01x_CR_UARTEN | UART011_CR_RXE | UART011_CR_TXE;
 	writew(cr, uap->port.membase + UART011_CR);
 
+
 	/*
 	 * initialise the old status of the modem signals
 	 */

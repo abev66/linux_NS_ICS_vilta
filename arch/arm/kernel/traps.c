@@ -450,8 +450,9 @@ do_cache_op(unsigned long start, unsigned long end, int flags)
 			start = vma->vm_start;
 		if (end > vma->vm_end)
 			end = vma->vm_end;
-
+		up_read(&mm->mmap_sem);
 		flush_cache_user_range(start, end);
+		return;
 	}
 	up_read(&mm->mmap_sem);
 }

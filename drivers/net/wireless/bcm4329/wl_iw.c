@@ -4899,7 +4899,7 @@ wl_iw_set_power(
 
 	WL_TRACE(("%s: SIOCSIWPOWER\n", dev->name));
 
-#ifdef CONFIG_WIRELESS_PMFAST
+#ifdef CONFIG_BCM4329_PMFAST
 	pm = vwrq->disabled ? PM_OFF : PM_FAST;
 #else
 	pm = vwrq->disabled ? PM_OFF : PM_MAX;
