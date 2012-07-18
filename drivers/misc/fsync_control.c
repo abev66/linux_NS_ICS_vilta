@@ -13,7 +13,7 @@
 
 #define FSYNCCONTROL_VERSION 1
 
-static bool fsync_enabled = false;
+static bool fsync_enabled = true;
 
 bool fsynccontrol_fsync_enabled()
 {
